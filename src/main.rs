@@ -1,10 +1,7 @@
 use clap::Parser;
-use std::path::PathBuf;
+use image::{io::Reader as ImageReader, ImageBuffer, Rgb};
 use rayon::prelude::*;
-use image::io::Reader as ImageReader;
-use image::{Rgb, ImageBuffer};
-use cached::proc_macro::cached;
-use std::ffi::OsStr;
+use std::{ffi::OsStr, path::PathBuf};
 
 // sorted
 const PIET_COLOURS: [Rgb<u8>; 20] = [
@@ -66,15 +63,14 @@ fn main() {
             let height = im.height();
             let width = im.width();
             let mut buffer: Vec<u8> = im.into_rgb8().into_vec();
-            buffer
-                .par_chunks_mut(3)
-                .for_each(|chunk| {
-                    let Rgb([r, g, b]) = closest_piet_colour(Rgb([chunk[0], chunk[1], chunk[2]]));
-                    chunk[0] = r;
-                    chunk[1] = g;
-                    chunk[2] = b;
-                });
-            let rgb_image = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_vec(width, height, buffer).unwrap();
+            buffer.par_chunks_mut(3).for_each(|chunk| {
+                let Rgb([r, g, b]) = closest_piet_colour(Rgb([chunk[0], chunk[1], chunk[2]]));
+                chunk[0] = r;
+                chunk[1] = g;
+                chunk[2] = b;
+            });
+            let rgb_image =
+                ImageBuffer::<Rgb<u8>, Vec<u8>>::from_vec(width, height, buffer).unwrap();
 
             //for pixel in rgb_image.pixels_mut().into_par_iter() {
             //    *pixel = closest_piet_colour(*pixel);
@@ -89,12 +85,12 @@ fn main() {
                 .expect("Failed to get file name/suffix.");
 
             path.set_file_name(format!("{name}_piet.png"));
-            rgb_image.save(path)
+            rgb_image
+                .save(path)
                 .expect("Failed to save new image file.");
         });
 }
 
-#[cached]
 fn closest_piet_colour(Rgb([r, g, b]): Rgb<u8>) -> Rgb<u8> {
     *PIET_COLOURS
         .iter()
